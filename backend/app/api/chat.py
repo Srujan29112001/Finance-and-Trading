@@ -10,6 +10,7 @@ from loguru import logger
 import uuid
 
 from app.agents.langchain_agent import FinanceCopilotAgent
+from app.agents.hybrid_orchestrator import get_hybrid_orchestrator
 from app.database import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
     symbol: Optional[str] = None
+    include_chart_analysis: bool = False
     context: Optional[Dict[str, Any]] = None
 
 
@@ -34,9 +36,14 @@ class ChatResponse(BaseModel):
     session_id: str
     message: str
     response: str
+    mode: Optional[str] = None
+    status_message: Optional[str] = None
+    models_used: Optional[List[str]] = []
+    chart_analysis: Optional[str] = None
     sources: Optional[List[Dict[str, Any]]] = []
     tools_used: Optional[List[str]] = []
     confidence: Optional[float] = None
+    warning: Optional[str] = None
     timestamp: datetime
 
 
@@ -65,35 +72,52 @@ async def ask_question(
     db: AsyncSession = Depends(get_db_session)
 ):
     """
-    Ask the AI Co-Pilot a question about markets, stocks, or trading.
+    Ask the AI Co-Pilot a question (SMART MODE - Auto-selects best available models).
 
-    The AI agent uses:
-    - RAG (Retrieval-Augmented Generation) to fetch relevant data
-    - GraphRAG for relationship-based queries
+    **Intelligent Model Selection:**
+    - ✅ Both API keys configured → Uses OpenAI LLM + GPT-4 Vision (best quality)
+    - ⚠️ Only LLM configured → Uses OpenAI LLM (informs about VLM unavailable)
+    - ⚠️ Only VLM configured → Uses GPT-4 Vision (informs about LLM unavailable)
+    - 🔵 No APIs configured → Uses Offline Mode (private, free)
+
+    **The system automatically:**
+    1. Detects which models are available
+    2. Uses the best combination
+    3. Informs you which models are being used
+    4. Falls back gracefully if models fail
+
+    **Features:**
+    - RAG (Retrieval-Augmented Generation)
+    - GraphRAG for relationships
     - Real-time market data
     - Sentiment analysis
     - RL trading signals
+    - Chart visual analysis (if VLM available)
 
     Examples:
-    - "Why did TSLA spike at 10:03 today?"
-    - "What's the sentiment on Apple stock?"
-    - "Should I buy Tesla now?"
-    - "Compare earnings of AAPL and MSFT"
+    ```json
+    {
+        "message": "Why did TSLA spike today?",
+        "symbol": "TSLA",
+        "include_chart_analysis": true
+    }
+    ```
     """
     try:
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
 
-        logger.info(f"Chat request - Session: {session_id}, Message: {request.message}")
+        logger.info(f"Smart chat request - Session: {session_id}, Message: {request.message}")
 
-        # Get the copilot agent
-        agent = get_copilot_agent()
+        # Get the hybrid orchestrator (smart model selector)
+        orchestrator = get_hybrid_orchestrator()
 
-        # Process the query with context
-        result = await agent.process_query(
+        # Process with best available models
+        result = await orchestrator.process_query(
             query=request.message,
-            session_id=session_id,
             symbol=request.symbol,
+            include_chart_analysis=request.include_chart_analysis,
+            session_id=session_id,
             context=request.context
         )
 
@@ -116,9 +140,14 @@ async def ask_question(
             session_id=session_id,
             message=request.message,
             response=result["response"],
+            mode=result.get("mode"),
+            status_message=result.get("status_message"),
+            models_used=result.get("models_used", []),
+            chart_analysis=result.get("chart_analysis"),
             sources=result.get("sources", []),
             tools_used=result.get("tools_used", []),
             confidence=result.get("confidence"),
+            warning=result.get("warning"),
             timestamp=datetime.utcnow()
         )
 
@@ -281,6 +310,51 @@ async def summarize_news(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/model-status")
+async def get_model_status():
+    """
+    Get current model availability and operating mode.
+
+    Returns information about which models (LLM, VLM, Offline) are available
+    and what mode the system is currently operating in.
+    """
+    try:
+        orchestrator = get_hybrid_orchestrator()
+        capabilities = orchestrator.get_capabilities()
+
+        return {
+            "current_mode": capabilities["mode"],
+            "status_message": capabilities["status_message"],
+            "available_models": capabilities["models_used"],
+            "model_details": {
+                "llm": {
+                    "status": capabilities.get("llm_status", "unknown"),
+                    "type": "OpenAI GPT-4" if capabilities.get("llm_status") == "available" else "Not configured"
+                },
+                "vlm": {
+                    "status": capabilities.get("vlm_status", "unknown"),
+                    "type": "GPT-4 Vision" if capabilities.get("vlm_status") == "available" else "Not configured"
+                },
+                "offline": {
+                    "status": capabilities.get("offline_status", "unknown"),
+                    "type": "LLaMA/Mistral (Local)"
+                }
+            },
+            "features_available": {
+                "text_analysis": capabilities.get("llm_status") == "available" or capabilities.get("offline_status") == "available",
+                "chart_analysis": capabilities.get("vlm_status") == "available",
+                "offline_mode": capabilities.get("offline_status") == "available"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting model status: {e}")
+        return {
+            "current_mode": "unknown",
+            "status_message": "Error checking model status",
+            "error": str(e)
+        }
+
+
 @router.get("/capabilities")
 async def get_capabilities():
     """Get information about the AI assistant's capabilities."""
@@ -292,7 +366,9 @@ async def get_capabilities():
             "sentiment_analysis": "News and social media sentiment tracking",
             "technical_analysis": "Technical indicators and chart patterns",
             "rl_signals": "Reinforcement learning trading recommendations",
-            "behavioral_analytics": "Trader psychology and risk warnings"
+            "behavioral_analytics": "Trader psychology and risk warnings",
+            "vlm_chart_analysis": "Visual chart interpretation with AI vision",
+            "offline_analytics": "100% local processing without cloud APIs"
         },
         "data_sources": [
             "Real-time price data",
@@ -309,6 +385,8 @@ async def get_capabilities():
             "Trading recommendations",
             "Comparative analysis",
             "Risk assessment",
-            "Portfolio insights"
+            "Portfolio insights",
+            "Chart pattern recognition",
+            "Visual technical analysis"
         ]
     }
