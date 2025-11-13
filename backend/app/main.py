@@ -14,7 +14,7 @@ from datetime import datetime
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import routers
-from app.api import market_data, analysis, chat, trading, alerts, portfolio
+from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics
 
 # Import database
 from app.database import init_db, close_db
@@ -111,6 +111,8 @@ app.include_router(chat.router, prefix="/api/chat", tags=["AI Chat"])
 app.include_router(trading.router, prefix="/api/trading", tags=["Trading"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
+app.include_router(vlm.router, prefix="/api/vlm", tags=["VLM (Vision)"])
+app.include_router(offline_analytics.router, prefix="/api/offline", tags=["Offline Analytics"])
 
 
 @app.get("/")
