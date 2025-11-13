@@ -24,6 +24,9 @@ This platform addresses the **data overload problem** in modern trading by provi
 
 ✅ **Streaming Analytics**: Apache Kafka + Spark for high-throughput real-time processing
 ✅ **AI Co-Pilot**: LangChain-powered conversational analytics with contextual awareness
+✅ **Smart Model Orchestration**: Automatically selects best available models (online/offline) with graceful fallback
+✅ **VLM Chart Analysis**: Vision Language Models for visual interpretation of stock charts
+✅ **Offline Analytics**: 100% local LLM processing (LLaMA/Mistral) for complete privacy
 ✅ **RL Trading Agent**: Deep Q-Network for intelligent trading recommendations
 ✅ **Multi-Modal Data Fusion**: Combines prices, news sentiment, and social media
 ✅ **Graph RAG**: Knowledge graph queries for relationship-based insights
@@ -94,7 +97,9 @@ This platform addresses the **data overload problem** in modern trading by provi
 |----------|-------------|
 | **Streaming** | Apache Kafka, Apache Spark Structured Streaming |
 | **Databases** | PostgreSQL, MongoDB, Qdrant (Vector DB), Neo4j (Graph DB) |
-| **AI/ML** | LangChain, OpenAI/HuggingFace, Stable-Baselines3 (RL) |
+| **AI/ML** | LangChain, OpenAI GPT-4, Stable-Baselines3 (RL) |
+| **Vision Models** | GPT-4 Vision, LLaVA, BLIP-2 |
+| **Offline LLMs** | LLaMA 2, Mistral (via llama.cpp) |
 | **Backend** | FastAPI, GraphQL (Strawberry) |
 | **Frontend** | Streamlit, Plotly |
 | **Orchestration** | Apache Airflow, Docker Compose |
@@ -170,6 +175,7 @@ Navigate to the **AI Co-Pilot** tab in the dashboard and ask questions like:
 - "What's the sentiment on Apple stock?"
 - "Should I buy Microsoft now?"
 - "Compare earnings of AAPL and GOOGL"
+- "Analyze the chart patterns for NVDA" (with visual chart analysis)
 
 The AI uses **RAG (Retrieval-Augmented Generation)** to provide data-backed answers by:
 1. Querying the vector database for relevant documents
@@ -177,6 +183,20 @@ The AI uses **RAG (Retrieval-Augmented Generation)** to provide data-backed answ
 3. Analyzing sentiment from news and social media
 4. Consulting the knowledge graph for relationships
 5. Generating a coherent, sourced response
+
+**🎯 Smart Model Orchestration** (NEW!):
+The system automatically selects the best available AI models:
+- 🟢 **Both API keys configured** → Uses OpenAI GPT-4 + Vision (best quality)
+- 🟡 **Only LLM configured** → Uses GPT-4 text analysis (informs about VLM unavailable)
+- 🟡 **Only VLM configured** → Uses Vision for charts (informs about LLM unavailable)
+- 🔵 **No API keys** → Uses offline LLaMA/Mistral (100% private, free)
+
+Check current model status:
+```bash
+curl http://localhost:8000/api/chat/model-status
+```
+
+See `SMART_ORCHESTRATION_GUIDE.md` for complete details.
 
 ### 3. Getting Trading Signals
 
@@ -516,6 +536,12 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## 📚 Additional Resources
 
+### Setup Guides
+- [Getting Started Guide](GETTING_STARTED.md) - Complete setup and testing instructions
+- [VLM & Offline Analytics Setup](VLM_AND_OFFLINE_GUIDE.md) - Visual chart analysis and local LLMs
+- [Smart Orchestration Guide](SMART_ORCHESTRATION_GUIDE.md) - Intelligent model selection and fallback
+
+### Technical Documentation
 - [Architecture Deep Dive](docs/ARCHITECTURE.md)
 - [API Reference](http://localhost:8000/docs)
 - [Deployment Guide](docs/DEPLOYMENT.md)
