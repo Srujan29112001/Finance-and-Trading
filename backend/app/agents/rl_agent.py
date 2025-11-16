@@ -14,7 +14,7 @@ try:
     import torch
     import torch.nn as nn
     from stable_baselines3 import DQN
-    from stable_baselines3.common.vec_env import Dummy VecEnv
+    from stable_baselines3.common.vec_env import DummyVecEnv
     HAS_RL = True
 except ImportError:
     logger.warning("RL libraries not available. Using mock RL agent.")

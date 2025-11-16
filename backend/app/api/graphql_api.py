@@ -12,7 +12,7 @@ from strawberry.fastapi import GraphQLRouter
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db_session
 from app.models.market import StockPrice, TechnicalIndicator
 from app.models.trading import TradingSignal
 from app.models.sentiment import NewsArticle, SentimentScore
@@ -404,9 +404,10 @@ schema = strawberry.Schema(query=Query, mutation=Mutation)
 
 
 # Create the GraphQL router
-async def get_context(db: AsyncSession = next(get_db())):
+async def get_context():
     """Provide context for GraphQL resolvers"""
-    return {"db": db}
+    async for db in get_db_session():
+        return {"db": db}
 
 
 graphql_app = GraphQLRouter(

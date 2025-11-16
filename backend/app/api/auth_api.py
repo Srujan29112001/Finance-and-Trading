@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db_session
 from app.auth import (
     Token,
     User,
@@ -33,7 +33,7 @@ router = APIRouter()
 @router.post("/token", response_model=Token)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     OAuth2 compatible token login endpoint.
@@ -80,7 +80,7 @@ async def login(
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
     refresh_token: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Refresh an access token using a refresh token
@@ -133,7 +133,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register(
     user_create: UserCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Register a new user
@@ -162,7 +162,7 @@ async def register(
 async def update_user_me(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Update current user's information
@@ -183,7 +183,7 @@ async def list_users(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     List all users (Admin only)
@@ -226,7 +226,7 @@ async def list_users(
 async def get_user(
     user_id: int,
     current_user: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get a specific user by ID (Admin only)
@@ -251,7 +251,7 @@ async def update_user(
     user_id: int,
     user_update: UserUpdate,
     current_user: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Update a user (Admin only)
@@ -266,7 +266,7 @@ async def update_user(
 async def delete_user(
     user_id: int,
     current_user: User = Depends(require_admin),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Delete a user (Admin only)

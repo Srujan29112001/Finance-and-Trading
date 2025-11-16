@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 from app.database import get_db_session, get_mongodb
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
