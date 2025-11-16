@@ -1,0 +1,39 @@
+{
+  "total_runs": 5,
+  "successful_runs": 0,
+  "failed_runs": 4,
+  "cancelled_runs": 0,
+  "avg_duration_seconds": 47.8,
+  "workflows": {
+    "Pipeline Monitoring & Metrics": {
+      "runs": 1,
+      "success": 0,
+      "failure": 0,
+      "avg_duration": 3.0,
+      "null": 1,
+      "success_rate": 0.0
+    },
+    "CI - Test, Lint, and Build": {
+      "runs": 3,
+      "success": 0,
+      "failure": 3,
+      "avg_duration": 71.0,
+      "success_rate": 0.0
+    },
+    "Automated Code Review": {
+      "runs": 1,
+      "success": 0,
+      "failure": 1,
+      "avg_duration": 23.0,
+      "success_rate": 0.0
+    }
+  },
+  "daily_runs": {
+    "2025-11-16": 5
+  },
+  "collection_time": "2025-11-16T12:15:03.609618",
+  "median_duration_seconds": 68.0,
+  "p95_duration_seconds": 76.0,
+  "success_rate": 0.0,
+  "failure_rate": 80.0
+}
