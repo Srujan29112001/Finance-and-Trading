@@ -1,0 +1,563 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "cicd-pipeline-performance",
+    "title": "CI/CD Pipeline Performance Dashboard",
+    "tags": ["cicd", "pipeline", "github-actions", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5m",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "stat",
+        "title": "Success Rate",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_success_rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 70,
+                  "color": "yellow"
+                },
+                {
+                  "value": 85,
+                  "color": "green"
+                },
+                {
+                  "value": 95,
+                  "color": "dark-green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "stat",
+        "title": "Average Duration",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_avg_duration_minutes"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "m",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 10,
+                  "color": "yellow"
+                },
+                {
+                  "value": 15,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "stat",
+        "title": "Total Runs (30d)",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_total_runs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "stat",
+        "title": "Failure Rate",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_failure_rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 10,
+                  "color": "yellow"
+                },
+                {
+                  "value": 15,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "type": "timeseries",
+        "title": "Pipeline Success Rate Over Time",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_success_rate_timeseries"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "showPoints": "auto",
+              "fillOpacity": 25
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "type": "timeseries",
+        "title": "Build Duration Trend",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_duration_p50"
+          },
+          {
+            "refId": "B",
+            "datasource": "GitHub Metrics",
+            "expr": "pipeline_duration_p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "m",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "P95"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "fixed",
+                    "fixedColor": "orange"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 18
+        },
+        "type": "bargauge",
+        "title": "Workflow Performance by Type",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "workflow_success_rate_by_name"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 85,
+                  "color": "yellow"
+                },
+                {
+                  "value": 95,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 18
+        },
+        "type": "timeseries",
+        "title": "Daily Pipeline Runs",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "daily_pipeline_runs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 28
+        },
+        "type": "piechart",
+        "title": "Workflow Run Distribution",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "workflow_runs_by_type"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 28
+        },
+        "type": "table",
+        "title": "Recent Failed Runs",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "recent_failed_runs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left"
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "gridPos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 28
+        },
+        "type": "stat",
+        "title": "Cost Metrics",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "monthly_cost_estimate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 10,
+                  "color": "yellow"
+                },
+                {
+                  "value": 50,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 12,
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 38
+        },
+        "type": "timeseries",
+        "title": "DORA Metrics - Deployment Frequency",
+        "description": "Number of successful deployments per day",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "deployment_frequency_daily"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 50
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 46
+        },
+        "type": "gauge",
+        "title": "Lead Time for Changes",
+        "description": "Average time from commit to deployment",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "lead_time_for_changes_hours"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 24,
+                  "color": "yellow"
+                },
+                {
+                  "value": 72,
+                  "color": "red"
+                }
+              ]
+            },
+            "max": 168
+          }
+        }
+      },
+      {
+        "id": 14,
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 46
+        },
+        "type": "gauge",
+        "title": "Mean Time to Recovery (MTTR)",
+        "description": "Average time to recover from failures",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": "GitHub Metrics",
+            "expr": "mean_time_to_recovery_hours"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 4,
+                  "color": "red"
+                }
+              ]
+            },
+            "max": 24
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "timerange",
+          "type": "interval",
+          "query": "1h,6h,12h,24h,7d,30d",
+          "current": {
+            "text": "24h",
+            "value": "24h"
+          }
+        },
+        {
+          "name": "workflow",
+          "type": "query",
+          "datasource": "GitHub Metrics",
+          "query": "workflow_names",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "GitHub Metrics",
+          "enable": true,
+          "iconColor": "green",
+          "tags": ["deployment"]
+        },
+        {
+          "name": "Incidents",
+          "datasource": "GitHub Metrics",
+          "enable": true,
+          "iconColor": "red",
+          "tags": ["incident", "failure"]
+        }
+      ]
+    }
+  }
+}

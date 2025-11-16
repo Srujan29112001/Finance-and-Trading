@@ -1,0 +1,412 @@
+name: Pipeline Monitoring & Metrics
+
+on:
+  schedule:
+    # Run every 6 hours to collect metrics
+    - cron: '0 */6 * * *'
+  workflow_run:
+    workflows: ["CI - Test, Lint, and Build", "Build and Publish Docker Images", "Deploy to Production"]
+    types: [completed]
+  workflow_dispatch:
+
+env:
+  MONITORING_RETENTION_DAYS: 90
+
+jobs:
+  # Collect pipeline metrics
+  collect-metrics:
+    name: Collect Pipeline Metrics
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install requests pandas matplotlib seaborn
+
+    - name: Collect workflow runs data
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python - <<'EOF'
+        import requests
+        import json
+        import os
+        from datetime import datetime, timedelta
+        from collections import defaultdict
+
+        # GitHub API setup
+        token = os.environ['GITHUB_TOKEN']
+        repo = os.environ['GITHUB_REPOSITORY']
+        headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+
+        # Fetch workflow runs (last 30 days)
+        url = f'https://api.github.com/repos/{repo}/actions/runs'
+        params = {'per_page': 100, 'created': f'>={(datetime.now() - timedelta(days=30)).isoformat()}'}
+
+        all_runs = []
+        page = 1
+        while page <= 3:  # Limit to 300 runs
+            response = requests.get(url, headers=headers, params={**params, 'page': page})
+            if response.status_code != 200:
+                break
+            data = response.json()
+            all_runs.extend(data.get('workflow_runs', []))
+            if len(data.get('workflow_runs', [])) < 100:
+                break
+            page += 1
+
+        # Aggregate metrics
+        metrics = {
+            'total_runs': len(all_runs),
+            'successful_runs': sum(1 for r in all_runs if r['conclusion'] == 'success'),
+            'failed_runs': sum(1 for r in all_runs if r['conclusion'] == 'failure'),
+            'cancelled_runs': sum(1 for r in all_runs if r['conclusion'] == 'cancelled'),
+            'avg_duration_seconds': 0,
+            'workflows': defaultdict(lambda: {'runs': 0, 'success': 0, 'failure': 0, 'avg_duration': 0}),
+            'daily_runs': defaultdict(int),
+            'collection_time': datetime.now().isoformat()
+        }
+
+        durations = []
+        for run in all_runs:
+            workflow_name = run['name']
+            conclusion = run['conclusion']
+
+            # Calculate duration
+            if run['run_started_at'] and run['updated_at']:
+                start = datetime.fromisoformat(run['run_started_at'].replace('Z', '+00:00'))
+                end = datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00'))
+                duration = (end - start).total_seconds()
+                durations.append(duration)
+
+                # Workflow-specific metrics
+                metrics['workflows'][workflow_name]['runs'] += 1
+                metrics['workflows'][workflow_name][conclusion] = metrics['workflows'][workflow_name].get(conclusion, 0) + 1
+                metrics['workflows'][workflow_name]['avg_duration'] += duration
+
+            # Daily runs
+            date = run['created_at'][:10]
+            metrics['daily_runs'][date] += 1
+
+        # Calculate averages
+        if durations:
+            metrics['avg_duration_seconds'] = sum(durations) / len(durations)
+            metrics['median_duration_seconds'] = sorted(durations)[len(durations) // 2]
+            metrics['p95_duration_seconds'] = sorted(durations)[int(len(durations) * 0.95)]
+
+        for workflow in metrics['workflows'].values():
+            if workflow['runs'] > 0:
+                workflow['avg_duration'] /= workflow['runs']
+                workflow['success_rate'] = (workflow['success'] / workflow['runs']) * 100
+
+        # Calculate success rate
+        if metrics['total_runs'] > 0:
+            metrics['success_rate'] = (metrics['successful_runs'] / metrics['total_runs']) * 100
+            metrics['failure_rate'] = (metrics['failed_runs'] / metrics['total_runs']) * 100
+
+        # Save metrics
+        os.makedirs('metrics', exist_ok=True)
+        with open('metrics/pipeline-metrics.json', 'w') as f:
+            json.dump(metrics, f, indent=2, default=str)
+
+        print(f"✓ Collected metrics for {metrics['total_runs']} workflow runs")
+        print(f"  Success Rate: {metrics.get('success_rate', 0):.1f}%")
+        print(f"  Avg Duration: {metrics['avg_duration_seconds'] / 60:.1f} minutes")
+        EOF
+
+    - name: Generate metrics report
+      run: |
+        python - <<'EOF'
+        import json
+        import os
+        from datetime import datetime
+
+        with open('metrics/pipeline-metrics.json', 'r') as f:
+            metrics = json.load(f)
+
+        # Generate Markdown report
+        report = f"""# 📊 Pipeline Metrics Report
+
+        **Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+        ## Overall Statistics (Last 30 Days)
+
+        | Metric | Value |
+        |--------|-------|
+        | Total Runs | {metrics['total_runs']} |
+        | Successful | {metrics['successful_runs']} ({metrics.get('success_rate', 0):.1f}%) |
+        | Failed | {metrics['failed_runs']} ({metrics.get('failure_rate', 0):.1f}%) |
+        | Cancelled | {metrics['cancelled_runs']} |
+        | Avg Duration | {metrics['avg_duration_seconds'] / 60:.1f} min |
+        | Median Duration | {metrics.get('median_duration_seconds', 0) / 60:.1f} min |
+        | P95 Duration | {metrics.get('p95_duration_seconds', 0) / 60:.1f} min |
+
+        ## Success Rate Indicator
+
+        """
+
+        # Add visual success rate indicator
+        success_rate = metrics.get('success_rate', 0)
+        if success_rate >= 95:
+            report += "🟢 **EXCELLENT** - Pipeline is highly reliable\n\n"
+        elif success_rate >= 85:
+            report += "🟡 **GOOD** - Pipeline is stable with minor issues\n\n"
+        elif success_rate >= 70:
+            report += "🟠 **WARNING** - Pipeline has reliability concerns\n\n"
+        else:
+            report += "🔴 **CRITICAL** - Pipeline requires immediate attention\n\n"
+
+        # Workflow-specific metrics
+        report += "## Per-Workflow Statistics\n\n"
+        report += "| Workflow | Runs | Success Rate | Avg Duration |\n"
+        report += "|----------|------|--------------|-------------|\n"
+
+        for workflow_name, data in sorted(metrics['workflows'].items()):
+            success_rate = data.get('success_rate', 0)
+            avg_duration = data.get('avg_duration', 0) / 60
+            report += f"| {workflow_name} | {data['runs']} | {success_rate:.1f}% | {avg_duration:.1f} min |\n"
+
+        # Daily activity
+        report += "\n## Daily Activity (Last 7 Days)\n\n"
+        daily_runs = sorted(metrics['daily_runs'].items(), reverse=True)[:7]
+        if daily_runs:
+            report += "| Date | Runs |\n|------|------|\n"
+            for date, count in daily_runs:
+                report += f"| {date} | {count} |\n"
+
+        # Recommendations
+        report += "\n## 📈 Recommendations\n\n"
+
+        if metrics.get('failure_rate', 0) > 15:
+            report += "- ⚠️ Failure rate is above 15% - Review failing workflows\n"
+        if metrics['avg_duration_seconds'] > 900:  # 15 minutes
+            report += "- ⚠️ Average duration is high - Consider optimizing build times\n"
+        if metrics['total_runs'] > 1000:
+            report += "- 💰 High number of runs - Review trigger conditions to reduce costs\n"
+        if metrics.get('success_rate', 0) >= 95:
+            report += "- ✅ Pipeline is performing excellently - Keep up the good work!\n"
+
+        report += "\n---\n*Next update: 6 hours from now*\n"
+
+        # Save report
+        with open('metrics/pipeline-report.md', 'w') as f:
+            f.write(report)
+
+        print("✓ Generated metrics report")
+        EOF
+
+    - name: Upload metrics artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pipeline-metrics-${{ github.run_number }}
+        path: |
+          metrics/pipeline-metrics.json
+          metrics/pipeline-report.md
+        retention-days: 90
+
+    - name: Commit metrics to repo
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        mkdir -p .github/metrics
+        cp metrics/pipeline-metrics.json .github/metrics/
+        cp metrics/pipeline-report.md .github/metrics/
+
+        git add .github/metrics/
+        git diff --quiet && git diff --staged --quiet || \
+          (git commit -m "chore: Update pipeline metrics [skip ci]" && git push)
+      continue-on-error: true
+
+  # Check for pipeline health issues
+  health-check:
+    name: Pipeline Health Check
+    runs-on: ubuntu-latest
+    needs: collect-metrics
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Download metrics
+      uses: actions/download-artifact@v4
+      with:
+        name: pipeline-metrics-${{ github.run_number }}
+        path: metrics/
+
+    - name: Analyze health
+      id: health
+      run: |
+        python - <<'EOF'
+        import json
+        import os
+
+        with open('metrics/pipeline-metrics.json', 'r') as f:
+            metrics = json.load(f)
+
+        # Define thresholds
+        THRESHOLDS = {
+            'min_success_rate': 85.0,
+            'max_avg_duration_minutes': 15.0,
+            'max_failure_rate': 15.0
+        }
+
+        issues = []
+        warnings = []
+
+        # Check success rate
+        success_rate = metrics.get('success_rate', 0)
+        if success_rate < THRESHOLDS['min_success_rate']:
+            issues.append(f"Success rate ({success_rate:.1f}%) below threshold ({THRESHOLDS['min_success_rate']}%)")
+
+        # Check duration
+        avg_duration_min = metrics['avg_duration_seconds'] / 60
+        if avg_duration_min > THRESHOLDS['max_avg_duration_minutes']:
+            warnings.append(f"Average duration ({avg_duration_min:.1f} min) exceeds threshold ({THRESHOLDS['max_avg_duration_minutes']} min)")
+
+        # Check failure rate
+        failure_rate = metrics.get('failure_rate', 0)
+        if failure_rate > THRESHOLDS['max_failure_rate']:
+            issues.append(f"Failure rate ({failure_rate:.1f}%) exceeds threshold ({THRESHOLDS['max_failure_rate']}%)")
+
+        # Set outputs
+        if issues:
+            print(f"::set-output name=status::unhealthy")
+            print(f"::set-output name=issues::{'; '.join(issues)}")
+        elif warnings:
+            print(f"::set-output name=status::degraded")
+            print(f"::set-output name=issues::{'; '.join(warnings)}")
+        else:
+            print(f"::set-output name=status::healthy")
+            print(f"::set-output name=issues::None")
+
+        # Print summary
+        print(f"\n{'='*60}")
+        print(f"PIPELINE HEALTH CHECK")
+        print(f"{'='*60}")
+        print(f"Status: {os.environ.get('status', 'healthy').upper()}")
+        if issues:
+            print(f"\n🔴 ISSUES:")
+            for issue in issues:
+                print(f"  - {issue}")
+        if warnings:
+            print(f"\n🟡 WARNINGS:")
+            for warning in warnings:
+                print(f"  - {warning}")
+        print(f"{'='*60}\n")
+        EOF
+
+    - name: Create health status badge
+      run: |
+        mkdir -p .github/badges
+
+        # Create SVG badge based on health
+        python - <<'EOF'
+        import json
+
+        with open('metrics/pipeline-metrics.json', 'r') as f:
+            metrics = json.load(f)
+
+        success_rate = metrics.get('success_rate', 0)
+
+        if success_rate >= 95:
+            color = 'brightgreen'
+            status = 'excellent'
+        elif success_rate >= 85:
+            color = 'green'
+            status = 'good'
+        elif success_rate >= 70:
+            color = 'yellow'
+            status = 'fair'
+        else:
+            color = 'red'
+            status = 'poor'
+
+        badge_url = f"https://img.shields.io/badge/pipeline-{status}%20({success_rate:.0f}%25)-{color}"
+
+        with open('.github/badges/pipeline-status.md', 'w') as f:
+            f.write(f"![Pipeline Status]({badge_url})\n")
+
+        print(f"✓ Created badge: {status} ({success_rate:.0f}%)")
+        EOF
+
+  # Alert on critical issues
+  alert-on-issues:
+    name: Alert on Critical Issues
+    runs-on: ubuntu-latest
+    needs: health-check
+    if: needs.health-check.outputs.status == 'unhealthy'
+
+    steps:
+    - name: Send Slack alert
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            "text": "🚨 CI/CD Pipeline Health Alert",
+            "attachments": [{
+              "color": "danger",
+              "fields": [
+                {
+                  "title": "Status",
+                  "value": "Unhealthy",
+                  "short": true
+                },
+                {
+                  "title": "Issues",
+                  "value": "${{ needs.health-check.outputs.issues }}",
+                  "short": false
+                },
+                {
+                  "title": "Repository",
+                  "value": "${{ github.repository }}",
+                  "short": true
+                },
+                {
+                  "title": "View Details",
+                  "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>",
+                  "short": true
+                }
+              ]
+            }]
+          }
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      continue-on-error: true
+
+    - name: Create GitHub issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'pipeline-health'
+          });
+
+          // Only create issue if one doesn't exist
+          if (issues.data.length === 0) {
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 CI/CD Pipeline Health Alert',
+              body: `## Pipeline Health Issues Detected\n\n**Status:** Unhealthy\n\n**Issues:**\n${{ needs.health-check.outputs.issues }}\n\n**Action Required:**\nPlease review the pipeline metrics and address the issues above.\n\n[View Metrics Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`,
+              labels: ['pipeline-health', 'priority-high']
+            });
+          }
+      continue-on-error: true
