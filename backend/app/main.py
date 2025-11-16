@@ -14,7 +14,11 @@ from datetime import datetime
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import routers
-from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics
+from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics, ocr
+
+# Import GraphQL
+from strawberry.fastapi import GraphQLRouter
+from app.graphql_schema import schema
 
 # Import database
 from app.database import init_db, close_db
@@ -113,6 +117,11 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(vlm.router, prefix="/api/vlm", tags=["VLM (Vision)"])
 app.include_router(offline_analytics.router, prefix="/api/offline", tags=["Offline Analytics"])
+app.include_router(ocr.router, prefix="/api/ocr", tags=["OCR"])
+
+# Include GraphQL router
+graphql_app = GraphQLRouter(schema)
+app.include_router(graphql_app, prefix="/graphql", tags=["GraphQL"])
 
 
 @app.get("/")
@@ -126,6 +135,7 @@ async def root():
         "endpoints": {
             "docs": "/docs",
             "redoc": "/redoc",
+            "graphql": "/graphql",
             "health": "/health",
             "metrics": "/metrics",
             "market_data": "/api/market",
@@ -133,7 +143,9 @@ async def root():
             "chat": "/api/chat",
             "trading": "/api/trading",
             "alerts": "/api/alerts",
-            "portfolio": "/api/portfolio"
+            "portfolio": "/api/portfolio",
+            "vlm": "/api/vlm",
+            "offline": "/api/offline"
         }
     }
 

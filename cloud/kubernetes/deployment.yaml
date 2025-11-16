@@ -1,0 +1,351 @@
+---
+# Namespace for Finance Analytics Platform
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: finance-analytics
+
+---
+# ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finance-config
+  namespace: finance-analytics
+data:
+  POSTGRES_HOST: postgres-service
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: financedb
+  MONGODB_HOST: mongodb-service
+  MONGODB_PORT: "27017"
+  KAFKA_BOOTSTRAP_SERVERS: kafka-service:9092
+  REDIS_HOST: redis-service
+  REDIS_PORT: "6379"
+  QDRANT_HOST: qdrant-service
+  QDRANT_PORT: "6333"
+  NEO4J_URI: bolt://neo4j-service:7687
+  MLFLOW_TRACKING_URI: http://mlflow-service:5000
+
+---
+# Secret for sensitive data (base64 encoded)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: finance-secrets
+  namespace: finance-analytics
+type: Opaque
+data:
+  # echo -n 'financeuser' | base64
+  POSTGRES_USER: ZmluYW5jZXVzZXI=
+  # echo -n 'financepass' | base64
+  POSTGRES_PASSWORD: ZmluYW5jZXBhc3M=
+  MONGODB_USER: ZmluYW5jZXVzZXI=
+  MONGODB_PASSWORD: ZmluYW5jZXBhc3M=
+  NEO4J_USER: bmVvNGo=
+  NEO4J_PASSWORD: ZmluYW5jZXBhc3M=
+
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: finance-analytics
+spec:
+  serviceName: postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: finance-config
+              key: POSTGRES_DB
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: finance-analytics
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+
+---
+# FastAPI Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  namespace: finance-analytics
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+      - name: fastapi
+        image: finance-analytics/backend:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: finance-config
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: finance-secrets
+              key: POSTGRES_PASSWORD
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# FastAPI Service (LoadBalancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+  namespace: finance-analytics
+spec:
+  type: LoadBalancer
+  selector:
+    app: fastapi
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+
+---
+# Streamlit Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit
+  namespace: finance-analytics
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: streamlit
+  template:
+    metadata:
+      labels:
+        app: streamlit
+    spec:
+      containers:
+      - name: streamlit
+        image: finance-analytics/frontend:latest
+        ports:
+        - containerPort: 8501
+        env:
+        - name: FASTAPI_URL
+          value: "http://fastapi-service"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+---
+# Streamlit Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamlit-service
+  namespace: finance-analytics
+spec:
+  type: LoadBalancer
+  selector:
+    app: streamlit
+  ports:
+  - port: 80
+    targetPort: 8501
+
+---
+# Horizontal Pod Autoscaler for FastAPI
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fastapi-hpa
+  namespace: finance-analytics
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fastapi
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Prometheus Deployment (Monitoring)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: finance-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        - name: prometheus-storage
+          mountPath: /prometheus
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config
+      - name: prometheus-storage
+        emptyDir: {}
+
+---
+# Prometheus Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: finance-analytics
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090
+
+---
+# Grafana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: finance-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: finance-analytics
+spec:
+  type: LoadBalancer
+  selector:
+    app: grafana
+  ports:
+  - port: 80
+    targetPort: 3000
