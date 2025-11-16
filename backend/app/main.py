@@ -14,8 +14,11 @@ from datetime import datetime
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import routers
-from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics, auth_api
-from app.api.graphql_api import graphql_app
+from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics, ocr, auth_api
+
+# Import GraphQL (Strawberry-based)
+from strawberry.fastapi import GraphQLRouter
+from app.graphql_schema import schema
 
 # Import database
 from app.database import init_db, close_db
@@ -68,6 +71,8 @@ app = FastAPI(
     * **Risk Analytics**: Portfolio risk metrics and behavioral analysis
     * **GraphQL & REST**: Flexible querying with both interfaces
     * **Real-time Alerts**: WebSocket-based market anomaly notifications
+    * **OCR Processing**: Extract text and financial data from PDFs
+    * **Authentication**: JWT-based security for protected endpoints
 
     ## Tech Stack
 
@@ -76,6 +81,7 @@ app = FastAPI(
     - PostgreSQL, MongoDB, Neo4j, Qdrant for storage
     - LangChain with RAG/GraphRAG for AI
     - Reinforcement Learning for trading signals
+    - LoRA/QLoRA for domain-specific fine-tuning
     """,
     version="1.0.0",
     lifespan=lifespan,
@@ -115,8 +121,10 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(vlm.router, prefix="/api/vlm", tags=["VLM (Vision)"])
 app.include_router(offline_analytics.router, prefix="/api/offline", tags=["Offline Analytics"])
+app.include_router(ocr.router, prefix="/api/ocr", tags=["OCR"])
 
-# Include GraphQL
+# Include GraphQL router (Strawberry)
+graphql_app = GraphQLRouter(schema)
 app.include_router(graphql_app, prefix="/graphql", tags=["GraphQL"])
 
 
@@ -143,7 +151,8 @@ async def root():
             "alerts": "/api/alerts",
             "portfolio": "/api/portfolio",
             "vlm": "/api/vlm",
-            "offline": "/api/offline"
+            "offline": "/api/offline",
+            "ocr": "/api/ocr"
         },
         "authentication": {
             "type": "JWT Bearer Token",
@@ -178,10 +187,13 @@ async def api_info():
             "risk_analytics": True,
             "sentiment_analysis": True,
             "graph_rag": True,
-            "websocket_alerts": True
+            "websocket_alerts": True,
+            "ocr_processing": True,
+            "authentication": True,
+            "backtesting": True
         },
         "data_sources": ["Kafka", "PostgreSQL", "MongoDB", "Neo4j", "Qdrant"],
-        "ml_models": ["LLM (LoRA/QLoRA)", "RL Agent (DQN)", "Sentiment Analysis"],
+        "ml_models": ["LLM (LoRA/QLoRA)", "RL Agent (DQN)", "Sentiment Analysis", "VLM (Vision)"],
         "api_types": ["REST", "GraphQL", "WebSocket"]
     }
 
