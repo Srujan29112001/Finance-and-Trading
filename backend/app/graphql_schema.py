@@ -11,7 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 
 # Import database and services
-from app.database import get_postgres_session, get_mongodb, get_neo4j_driver
+from app.database import get_db_session, get_mongodb, get_neo4j
 from sqlalchemy import text
 import asyncio
 
@@ -142,7 +142,7 @@ class Query:
         start_date: Optional[datetime] = None
     ) -> List[PriceData]:
         """Get historical price data for a symbol"""
-        async with get_postgres_session() as session:
+        async with get_db_session() as session:
             query = """
                 SELECT timestamp, symbol, open, high, low, close, volume
                 FROM stock_prices
@@ -186,7 +186,7 @@ class Query:
         limit: int = 10
     ) -> List[NewsArticle]:
         """Get recent news articles"""
-        mongo_db = await get_mongodb()
+        mongo_db = get_mongodb()
         collection = mongo_db["news_articles"]
 
         query = {}
@@ -216,7 +216,7 @@ class Query:
         limit: int = 10
     ) -> List[TradingSignal]:
         """Get recent trading signals from RL agent"""
-        async with get_postgres_session() as session:
+        async with get_db_session() as session:
             query = """
                 SELECT symbol, action, confidence, target_price,
                        stop_loss, rationale, generated_at
@@ -247,7 +247,7 @@ class Query:
     @strawberry.field
     async def sentiment(self, symbol: str) -> Optional[SentimentData]:
         """Get aggregated sentiment for a symbol"""
-        async with get_postgres_session() as session:
+        async with get_db_session() as session:
             query = """
                 SELECT symbol, overall_score, news_sentiment, social_sentiment,
                        sentiment_label, sample_size
@@ -279,7 +279,7 @@ class Query:
         limit: int = 20
     ) -> List[MarketAlert]:
         """Get recent market alerts"""
-        async with get_postgres_session() as session:
+        async with get_db_session() as session:
             query = "SELECT id, symbol, alert_type, severity, message, value, threshold, created_at FROM market_alerts WHERE 1=1"
             params = {}
 
@@ -317,7 +317,7 @@ class Query:
         symbol: str
     ) -> Optional[TechnicalIndicator]:
         """Get latest technical indicators"""
-        async with get_postgres_session() as session:
+        async with get_db_session() as session:
             query = """
                 SELECT symbol, date, sma_20, sma_50, rsi_14, macd,
                        macd_signal, bollinger_upper, bollinger_lower
@@ -380,7 +380,7 @@ class Query:
         relationship_type: Optional[str] = None
     ) -> List[KnowledgeGraphRelationship]:
         """Query the knowledge graph for relationships"""
-        driver = await get_neo4j_driver()
+        driver = get_neo4j()
 
         cypher_query = """
         MATCH (a)-[r]->(b)

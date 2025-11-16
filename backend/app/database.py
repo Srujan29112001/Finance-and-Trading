@@ -4,6 +4,7 @@ Database Connections and Initialization
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import text
 from pymongo import MongoClient
 from pymongo.database import Database
 from qdrant_client import QdrantClient
@@ -162,7 +163,7 @@ async def check_postgres_health() -> bool:
     """Check PostgreSQL connection health."""
     try:
         async with async_session_maker() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error(f"PostgreSQL health check failed: {e}")

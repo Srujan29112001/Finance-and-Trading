@@ -486,3 +486,15 @@ class FinanceCopilotAgent:
             "response_time_ms": 100,
             "context": context
         }
+
+
+# Singleton instance
+_langchain_agent_instance = None
+
+
+def get_langchain_agent() -> FinanceCopilotAgent:
+    """Get or create the LangChain agent singleton."""
+    global _langchain_agent_instance
+    if _langchain_agent_instance is None:
+        _langchain_agent_instance = FinanceCopilotAgent()
+    return _langchain_agent_instance
