@@ -1,18 +1,25 @@
 """
-Pytest configuration and fixtures
+Pytest configuration and fixtures for Finance Analytics tests
 
 Provides test fixtures for database, API client, and common test data.
 """
 
 import pytest
 import asyncio
-from typing import AsyncGenerator
+import os
+from typing import AsyncGenerator, Generator
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# Set test environment
+os.environ["TESTING"] = "true"
+os.environ["POSTGRES_HOST"] = "localhost"
+os.environ["MONGODB_URI"] = "mongodb://localhost:27017/"
+
 from app.main import app
-from app.database import Base, get_db
+from app.database import Base, get_db, get_postgres_session
 
 
 # Test database URL
@@ -30,7 +37,8 @@ def event_loop():
 @pytest.fixture
 async def test_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Create a fresh database for each test.
+    Create a fresh in-memory database for each test.
+    Uses SQLite for fast, isolated testing.
     """
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -55,9 +63,24 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture
-async def client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def db_session():
+    """Database session for testing with real Postgres (integration tests)"""
+    async with get_postgres_session() as session:
+        yield session
+
+
+@pytest.fixture
+def client() -> Generator:
+    """Synchronous test client for simple API tests"""
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+async def async_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
-    Create an async HTTP client for testing API endpoints.
+    Asynchronous HTTP client for testing API endpoints.
+    Uses test_db for database isolation.
     """
     async def override_get_db():
         yield test_db
@@ -75,23 +98,24 @@ def sample_stock_data():
     """Sample stock price data for testing"""
     return {
         "symbol": "AAPL",
-        "open": 150.00,
-        "high": 152.50,
-        "low": 149.00,
-        "close": 151.00,
+        "open": 150.0,
+        "high": 155.0,
+        "low": 149.0,
+        "close": 154.0,
         "volume": 1000000
     }
 
 
 @pytest.fixture
-def sample_news_data():
+def sample_news_article():
     """Sample news article for testing"""
     return {
+        "headline": "Apple Announces Record Earnings",
+        "content": "Apple Inc. reported record quarterly earnings...",
+        "source": "TestNews",
         "symbol": "AAPL",
-        "headline": "Apple announces new product",
-        "content": "Apple Inc. today announced a groundbreaking new product...",
-        "source": "Reuters",
-        "sentiment": 0.8
+        "sentiment_score": 0.8,
+        "sentiment_label": "positive"
     }
 
 
@@ -99,10 +123,10 @@ def sample_news_data():
 def sample_trading_signal():
     """Sample trading signal for testing"""
     return {
-        "symbol": "AAPL",
+        "symbol": "TSLA",
         "action": "BUY",
         "confidence": 0.85,
-        "target_price": 155.00,
-        "stop_loss": 148.00,
-        "reasoning": "Strong momentum and positive sentiment"
+        "target_price": 250.0,
+        "stop_loss": 230.0,
+        "rationale": "Strong momentum and positive sentiment"
     }
