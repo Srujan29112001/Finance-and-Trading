@@ -1,0 +1,269 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version/tag to deploy'
+        required: false
+        default: 'latest'
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: finance-copilot-cluster
+
+jobs:
+  # Deploy to Kubernetes (AWS EKS or GCP GKE)
+  deploy-kubernetes:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      if: contains(github.event.inputs.environment, 'aws')
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update kubeconfig for EKS
+      if: contains(github.event.inputs.environment, 'aws')
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ env.AWS_REGION }} \
+          --name ${{ env.EKS_CLUSTER_NAME }}
+
+    - name: Configure GCP credentials
+      if: contains(github.event.inputs.environment, 'gcp')
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      if: contains(github.event.inputs.environment, 'gcp')
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Get GKE credentials
+      if: contains(github.event.inputs.environment, 'gcp')
+      run: |
+        gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER_NAME }} \
+          --zone ${{ secrets.GKE_ZONE }} \
+          --project ${{ secrets.GCP_PROJECT }}
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: 'v1.28.0'
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'v3.13.0'
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f cloud/kubernetes/namespace.yaml
+        kubectl apply -f cloud/kubernetes/configmap.yaml
+        kubectl apply -f cloud/kubernetes/secrets.yaml
+        kubectl apply -f cloud/kubernetes/deployment.yaml
+        kubectl apply -f cloud/kubernetes/service.yaml
+        kubectl apply -f cloud/kubernetes/ingress.yaml
+
+    - name: Wait for deployment to complete
+      run: |
+        kubectl rollout status deployment/fastapi-backend -n finance-copilot --timeout=5m
+        kubectl rollout status deployment/streamlit-frontend -n finance-copilot --timeout=5m
+
+    - name: Run smoke tests
+      run: |
+        # Get the service URL
+        SERVICE_URL=$(kubectl get service fastapi-backend -n finance-copilot -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+        echo "Testing health endpoint..."
+        curl -f http://${SERVICE_URL}/health || exit 1
+
+        echo "Testing API info endpoint..."
+        curl -f http://${SERVICE_URL}/api/info || exit 1
+
+    - name: Notify deployment status
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          Deployment to ${{ github.event.inputs.environment }} completed
+          Version: ${{ github.event.inputs.version }}
+          Status: ${{ job.status }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      continue-on-error: true
+
+  # Deploy using Terraform (Infrastructure as Code)
+  deploy-infrastructure:
+    name: Deploy Infrastructure (Terraform)
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    if: github.event.inputs.environment == 'production'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Terraform Init
+      run: |
+        cd cloud/aws/terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd cloud/aws/terraform
+        terraform plan -out=tfplan
+
+    - name: Terraform Apply
+      if: github.event.inputs.environment == 'production'
+      run: |
+        cd cloud/aws/terraform
+        terraform apply -auto-approve tfplan
+
+    - name: Get infrastructure outputs
+      run: |
+        cd cloud/aws/terraform
+        terraform output -json > infrastructure-outputs.json
+
+    - name: Upload infrastructure outputs
+      uses: actions/upload-artifact@v4
+      with:
+        name: infrastructure-outputs
+        path: cloud/aws/terraform/infrastructure-outputs.json
+
+  # Database migration
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: deploy-kubernetes
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install alembic psycopg2-binary
+
+    - name: Run migrations
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        cd backend
+        # alembic upgrade head
+        echo "Migrations would run here (Alembic not configured yet)"
+
+  # Update monitoring and alerts
+  update-monitoring:
+    name: Update Monitoring Stack
+    runs-on: ubuntu-latest
+    needs: deploy-kubernetes
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy Prometheus
+      run: |
+        kubectl apply -f monitoring/prometheus/deployment.yaml
+      continue-on-error: true
+
+    - name: Deploy Grafana dashboards
+      run: |
+        # Upload Grafana dashboards via API
+        for dashboard in monitoring/grafana/dashboards/*.json; do
+          echo "Uploading $(basename $dashboard)..."
+          # curl -X POST command would go here
+        done
+      continue-on-error: true
+
+  # Performance tests post-deployment
+  performance-tests:
+    name: Run Performance Tests
+    runs-on: ubuntu-latest
+    needs: deploy-kubernetes
+    if: github.event.inputs.environment == 'staging'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run load tests with k6
+      uses: grafana/k6-action@v0.3.1
+      with:
+        filename: tests/performance/load-test.js
+      continue-on-error: true
+
+    - name: Upload performance results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-test-results
+        path: performance-results.json
+
+  # Rollback on failure
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-kubernetes, run-migrations]
+    if: failure()
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Configure kubectl
+      uses: azure/setup-kubectl@v4
+
+    - name: Rollback deployment
+      run: |
+        kubectl rollout undo deployment/fastapi-backend -n finance-copilot
+        kubectl rollout undo deployment/streamlit-frontend -n finance-copilot
+
+        echo "Deployment rolled back to previous version"
+
+    - name: Notify rollback
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            text: "🚨 Deployment to ${{ github.event.inputs.environment }} failed and was rolled back",
+            color: 'danger'
+          }
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      continue-on-error: true

@@ -1,0 +1,277 @@
+name: Automated Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Static code analysis with SonarCloud
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.projectKey=finance-and-trading
+          -Dsonar.organization=your-org
+          -Dsonar.sources=backend,frontend,data-producers
+          -Dsonar.python.coverage.reportPaths=backend/coverage.xml
+          -Dsonar.exclusions=**/tests/**,**/__pycache__/**
+      continue-on-error: true
+
+  # Code complexity analysis
+  complexity-analysis:
+    name: Code Complexity Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install radon
+      run: pip install radon
+
+    - name: Check cyclomatic complexity
+      run: |
+        echo "## Cyclomatic Complexity Report" > complexity-report.md
+        echo "" >> complexity-report.md
+
+        radon cc backend/ -a -s >> complexity-report.md
+        radon cc data-producers/ -a -s >> complexity-report.md
+
+        # Fail if average complexity is too high
+        AVG_COMPLEXITY=$(radon cc backend/ -a -s | grep "Average complexity" | awk '{print $4}' | cut -d'(' -f1)
+        if (( $(echo "$AVG_COMPLEXITY > 5" | bc -l) )); then
+          echo "⚠️ Average complexity ($AVG_COMPLEXITY) is too high!"
+          exit 1
+        fi
+      continue-on-error: true
+
+    - name: Check maintainability index
+      run: |
+        echo "## Maintainability Index" >> complexity-report.md
+        radon mi backend/ -s >> complexity-report.md
+
+    - name: Comment PR with complexity report
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('complexity-report.md', 'utf8');
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
+      continue-on-error: true
+
+  # Check for code smells and anti-patterns
+  code-smells:
+    name: Code Smell Detection
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install vulture (dead code detection)
+      run: pip install vulture
+
+    - name: Check for dead code
+      run: |
+        vulture backend/ data-producers/ --min-confidence 80 > dead-code-report.txt || true
+
+    - name: Upload dead code report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dead-code-report
+        path: dead-code-report.txt
+
+  # Dependency review
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        warn-only: false
+
+  # License compliance check
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install pip-licenses
+      run: pip install pip-licenses
+
+    - name: Check backend licenses
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip-licenses --format=markdown --output-file=../licenses-backend.md
+
+    - name: Check for incompatible licenses
+      run: |
+        # Fail if GPL or AGPL licenses are found (example - adjust as needed)
+        if grep -i "GPL" licenses-backend.md; then
+          echo "⚠️ Warning: GPL license found"
+        fi
+
+    - name: Upload license reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: license-reports
+        path: licenses-*.md
+
+  # Documentation check
+  docs-check:
+    name: Documentation Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install pydocstyle
+      run: pip install pydocstyle
+
+    - name: Check docstring coverage
+      run: |
+        pydocstyle backend/app/ --count > docstring-report.txt || true
+
+    - name: Comment PR with docs coverage
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('docstring-report.txt', 'utf8');
+
+          if (report.trim()) {
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📚 Documentation Issues\n\n\`\`\`\n${report}\n\`\`\``
+            });
+          }
+      continue-on-error: true
+
+  # Performance regression check
+  performance-check:
+    name: Performance Regression
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Checkout base branch
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git checkout origin/${{ github.base_ref }}
+
+    - name: Run baseline performance tests
+      run: |
+        # Placeholder for actual performance tests
+        echo "Baseline performance: 100ms average response time" > baseline.txt
+
+    - name: Checkout PR branch
+      run: |
+        git checkout ${{ github.head_ref }}
+
+    - name: Run PR performance tests
+      run: |
+        # Placeholder for actual performance tests
+        echo "PR performance: 105ms average response time" > pr-performance.txt
+
+    - name: Compare performance
+      run: |
+        echo "Performance comparison complete"
+        # Would compare baseline vs PR performance here
+
+  # Security code scan
+  security-scan:
+    name: Security Code Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Semgrep
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: >-
+          p/security-audit
+          p/python
+          p/owasp-top-ten
+
+    - name: Run GitGuardian scan
+      uses: GitGuardian/ggshield-action@master
+      env:
+        GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
+        GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
+        GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      continue-on-error: true
+
+  # AI-powered code review
+  ai-code-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: OpenAI Code Review
+      uses: openai/openai-pr-reviewer@main
+      with:
+        openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true

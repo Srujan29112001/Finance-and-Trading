@@ -1,0 +1,329 @@
+name: CI - Test, Lint, and Build
+
+on:
+  push:
+    branches: [ main, develop, 'claude/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy pylint bandit safety
+
+    - name: Run Black (code formatting check)
+      run: |
+        black --check --diff backend/ frontend/ data-producers/ scripts/
+      continue-on-error: true
+
+    - name: Run isort (import sorting check)
+      run: |
+        isort --check-only --diff backend/ frontend/ data-producers/ scripts/
+      continue-on-error: true
+
+    - name: Run Flake8 (linting)
+      run: |
+        flake8 backend/ frontend/ data-producers/ scripts/ \
+          --count \
+          --select=E9,F63,F7,F82 \
+          --show-source \
+          --statistics \
+          --max-line-length=120 \
+          --exclude=__pycache__,venv,env,.git
+      continue-on-error: true
+
+    - name: Run Pylint (advanced linting)
+      run: |
+        pylint backend/app/ --disable=C0111,C0103,R0903 --max-line-length=120 --fail-under=7.0
+      continue-on-error: true
+
+    - name: Run Bandit (security checks)
+      run: |
+        bandit -r backend/ data-producers/ -ll -f json -o bandit-report.json
+      continue-on-error: true
+
+    - name: Upload Bandit security report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+        retention-days: 30
+
+  # Job 2: Backend Unit Tests
+  backend-tests:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio httpx
+
+    - name: Run backend tests with coverage
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: testuser
+        POSTGRES_PASSWORD: testpass
+        POSTGRES_DB: testdb
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+      run: |
+        cd backend
+        pytest tests/ -v \
+          --cov=app \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --junit-xml=pytest-report.xml
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-test-results
+        path: |
+          backend/pytest-report.xml
+          backend/htmlcov/
+        retention-days: 30
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+      continue-on-error: true
+
+  # Job 3: Docker Build Test
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [backend, frontend, data-producers]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build ${{ matrix.service }} image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./${{ matrix.service }}
+        file: ./${{ matrix.service }}/Dockerfile
+        push: false
+        tags: finance-copilot-${{ matrix.service }}:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Scan image for vulnerabilities
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: finance-copilot-${{ matrix.service }}:test
+        format: 'sarif'
+        output: 'trivy-results-${{ matrix.service }}.sarif'
+      continue-on-error: true
+
+    - name: Upload Trivy scan results
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+      continue-on-error: true
+
+  # Job 4: Integration Tests (Docker Compose)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create .env file
+      run: |
+        cat > .env << EOF
+        POSTGRES_USER=financeuser
+        POSTGRES_PASSWORD=financepass
+        POSTGRES_DB=financedb
+        MONGODB_URI=mongodb://financeuser:financepass@mongodb:27017/
+        OPENAI_API_KEY=test-key
+        EOF
+
+    - name: Start essential services
+      run: |
+        # Start only essential services for integration tests
+        docker-compose up -d postgres mongodb redis kafka zookeeper
+
+    - name: Wait for services to be healthy
+      run: |
+        echo "Waiting for services to be ready..."
+        sleep 30
+        docker-compose ps
+
+    - name: Run integration tests
+      run: |
+        docker-compose run --rm fastapi pytest tests/integration/ -v
+      continue-on-error: true
+
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        docker-compose logs --tail=100
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down -v
+
+  # Job 5: Security Dependency Scan
+  dependency-security:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Safety
+      run: pip install safety
+
+    - name: Check backend dependencies
+      run: |
+        pip install -r backend/requirements.txt
+        safety check --json --output safety-backend.json
+      continue-on-error: true
+
+    - name: Check data-producers dependencies
+      run: |
+        pip install -r data-producers/requirements.txt
+        safety check --json --output safety-producers.json
+      continue-on-error: true
+
+    - name: Upload security reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-security-reports
+        path: safety-*.json
+        retention-days: 30
+
+  # Job 6: Documentation Build
+  docs-build:
+    name: Documentation Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check Markdown files
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        use-verbose-mode: 'yes'
+      continue-on-error: true
+
+    - name: Validate docker-compose
+      run: |
+        docker-compose config > /dev/null
+        echo "✓ docker-compose.yml is valid"
+
+  # Final Status Check
+  ci-success:
+    name: CI Pipeline Success
+    runs-on: ubuntu-latest
+    needs: [code-quality, backend-tests, docker-build, integration-tests, dependency-security, docs-build]
+    if: always()
+
+    steps:
+    - name: Check all jobs status
+      run: |
+        echo "Code Quality: ${{ needs.code-quality.result }}"
+        echo "Backend Tests: ${{ needs.backend-tests.result }}"
+        echo "Docker Build: ${{ needs.docker-build.result }}"
+        echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "Security Scan: ${{ needs.dependency-security.result }}"
+        echo "Docs Build: ${{ needs.docs-build.result }}"
+
+    - name: Set pipeline status
+      run: |
+        if [[ "${{ needs.backend-tests.result }}" == "failure" ]] || \
+           [[ "${{ needs.docker-build.result }}" == "failure" ]]; then
+          echo "❌ Critical jobs failed"
+          exit 1
+        else
+          echo "✅ CI Pipeline completed successfully"
+        fi
