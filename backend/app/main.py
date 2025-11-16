@@ -14,7 +14,8 @@ from datetime import datetime
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import routers
-from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics
+from app.api import market_data, analysis, chat, trading, alerts, portfolio, vlm, offline_analytics, auth_api
+from app.api.graphql_api import graphql_app
 
 # Import database
 from app.database import init_db, close_db
@@ -105,6 +106,7 @@ instrumentator = Instrumentator(
 instrumentator.instrument(app).expose(app)
 
 # Include routers
+app.include_router(auth_api.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(market_data.router, prefix="/api/market", tags=["Market Data"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["Analysis"])
 app.include_router(chat.router, prefix="/api/chat", tags=["AI Chat"])
@@ -113,6 +115,9 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["Portfolio"])
 app.include_router(vlm.router, prefix="/api/vlm", tags=["VLM (Vision)"])
 app.include_router(offline_analytics.router, prefix="/api/offline", tags=["Offline Analytics"])
+
+# Include GraphQL
+app.include_router(graphql_app, prefix="/graphql", tags=["GraphQL"])
 
 
 @app.get("/")
@@ -126,14 +131,28 @@ async def root():
         "endpoints": {
             "docs": "/docs",
             "redoc": "/redoc",
+            "graphql": "/graphql",
+            "graphiql": "/graphql (interactive)",
             "health": "/health",
             "metrics": "/metrics",
+            "auth": "/api/auth (JWT authentication)",
             "market_data": "/api/market",
             "analysis": "/api/analysis",
             "chat": "/api/chat",
             "trading": "/api/trading",
             "alerts": "/api/alerts",
-            "portfolio": "/api/portfolio"
+            "portfolio": "/api/portfolio",
+            "vlm": "/api/vlm",
+            "offline": "/api/offline"
+        },
+        "authentication": {
+            "type": "JWT Bearer Token",
+            "login": "/api/auth/token",
+            "test_users": {
+                "admin": "admin123 (full access)",
+                "trader": "trader123 (trading access)",
+                "analyst": "analyst123 (analysis access)"
+            }
         }
     }
 
