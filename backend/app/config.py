@@ -70,10 +70,12 @@ class Settings(BaseSettings):
     RL_MODEL_PATH: str = "/models/rl_agent"
     RL_RETRAIN_INTERVAL: int = 86400  # 24 hours in seconds
 
-    # Security
+    # Security & Authentication
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
