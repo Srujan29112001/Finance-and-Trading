@@ -44,7 +44,7 @@ async def get_trading_signals(
         result = await db.execute(query)
         signals = result.scalars().all()
 
-        return [TradingSignal.from_orm(s) for s in signals]
+        return [TradingSignal.model_validate(s, from_attributes=True) for s in signals]
 
     except Exception as e:
         logger.error(f"Error fetching trading signals: {e}")

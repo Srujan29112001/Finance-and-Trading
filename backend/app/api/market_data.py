@@ -103,10 +103,10 @@ async def get_stock_prices(
         result = await db.execute(query)
         prices = result.scalars().all()
 
-        response = [StockPrice.from_orm(p) for p in prices]
+        response = [StockPrice.model_validate(p, from_attributes=True) for p in prices]
 
         # Cache the result
-        await redis.setex(cache_key, 60, json.dumps([p.dict() for p in response], default=str))
+        await redis.setex(cache_key, 60, json.dumps([p.model_dump() for p in response], default=str))
 
         return response
 
@@ -138,10 +138,10 @@ async def get_latest_price(
         if not price:
             raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
 
-        response = StockPrice.from_orm(price)
+        response = StockPrice.model_validate(price, from_attributes=True)
 
         # Cache for 5 seconds
-        await redis.setex(cache_key, 5, json.dumps(response.dict(), default=str))
+        await redis.setex(cache_key, 5, json.dumps(response.model_dump(), default=str))
 
         return response
 
@@ -245,7 +245,7 @@ async def get_technical_indicators(
         result = await db.execute(query)
         indicators = result.scalars().all()
 
-        return [TechnicalIndicator.from_orm(ind) for ind in indicators]
+        return [TechnicalIndicator.model_validate(ind, from_attributes=True) for ind in indicators]
 
     except Exception as e:
         logger.error(f"Error fetching indicators for {symbol}: {e}")

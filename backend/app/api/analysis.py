@@ -54,7 +54,7 @@ async def get_sentiment(
         result = await db.execute(query)
         scores = result.scalars().all()
 
-        return [SentimentScore.from_orm(s) for s in scores]
+        return [SentimentScore.model_validate(s, from_attributes=True) for s in scores]
 
     except Exception as e:
         logger.error(f"Error fetching sentiment: {e}")

@@ -278,13 +278,16 @@ class FinanceCopilotAgent:
                 if not signal:
                     return f"No trading signals available for {symbol}. The RL agent may need to be run."
 
+                target_line = f"Target: ${float(signal.target_price):.2f}\n" if signal.target_price else ""
+                stop_loss_line = f"Stop Loss: ${float(signal.stop_loss):.2f}\n" if signal.stop_loss else ""
+
                 return (
                     f"{symbol.upper()} Trading Signal:\n"
                     f"Action: {signal.signal_type}\n"
                     f"Confidence: {float(signal.confidence):.1%}\n"
                     f"Price: ${float(signal.price):.2f}\n"
-                    f"Target: ${float(signal.target_price):.2f}" if signal.target_price else "" + "\n"
-                    f"Stop Loss: ${float(signal.stop_loss):.2f}" if signal.stop_loss else "" + "\n"
+                    f"{target_line}"
+                    f"{stop_loss_line}"
                     f"Reasoning: {signal.reasoning or 'Based on RL model analysis'}\n"
                     f"Generated: {signal.timestamp}"
                 )

@@ -43,7 +43,7 @@ async def get_portfolio_positions(
     query = select(UserPortfolio).where(UserPortfolio.user_id == user_id)
     result = await db.execute(query)
     positions = result.scalars().all()
-    return [PortfolioPosition.from_orm(p) for p in positions]
+    return [PortfolioPosition.model_validate(p, from_attributes=True) for p in positions]
 
 
 @router.get("/{user_id}/risk", response_model=RiskMetrics)
@@ -63,6 +63,6 @@ async def get_risk_metrics(
     metrics = result.scalar_one_or_none()
 
     if metrics:
-        return RiskMetrics.from_orm(metrics)
+        return RiskMetrics.model_validate(metrics, from_attributes=True)
 
     return RiskMetrics(portfolio_value=0.0)

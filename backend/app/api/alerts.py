@@ -40,7 +40,7 @@ async def get_recent_alerts(
 
     result = await db.execute(query)
     alerts = result.scalars().all()
-    return [MarketAlert.from_orm(a) for a in alerts]
+    return [MarketAlert.model_validate(a, from_attributes=True) for a in alerts]
 
 
 @router.get("/{symbol}", response_model=List[MarketAlert])
@@ -58,7 +58,7 @@ async def get_symbol_alerts(
 
     result = await db.execute(query)
     alerts = result.scalars().all()
-    return [MarketAlert.from_orm(a) for a in alerts]
+    return [MarketAlert.model_validate(a, from_attributes=True) for a in alerts]
 
 
 @router.post("/{alert_id}/acknowledge")
