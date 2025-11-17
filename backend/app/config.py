@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # API Settings
     API_TITLE: str = "Finance Analytics & Trading Co-Pilot API"
     API_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:8501", "http://localhost:3000", "*"]
