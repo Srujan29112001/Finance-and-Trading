@@ -4,9 +4,29 @@
 
 A comprehensive, production-ready platform that combines streaming data processing, machine learning, and AI to provide real-time market insights and trading recommendations.
 
-![Architecture](https://img.shields.io/badge/Architecture-Microservices-blue)
-![Python](https://img.shields.io/badge/Python-3.11-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+[![Architecture](https://img.shields.io/badge/Architecture-Microservices-blue)](https://github.com/Srujan29112001/Finance-and-Trading)
+[![Python](https://img.shields.io/badge/Python-3.11+-green)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](docker-compose.yml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Kafka](https://img.shields.io/badge/Apache-Kafka-231F20?logo=apache-kafka)](https://kafka.apache.org/)
+[![Spark](https://img.shields.io/badge/Apache-Spark-E25A1C?logo=apache-spark)](https://spark.apache.org/)
+
+---
+
+## 📚 Table of Contents
+
+- [Project Overview](#-project-overview)
+- [Architecture](#-architecture)
+- [Quick Start](#-quick-start)
+- [Usage](#-usage)
+- [AI/ML Components](#-aiml-components)
+- [Data Flow](#-data-flow)
+- [Monitoring & Observability](#-monitoring--observability)
+- [Development](#-development)
+- [Documentation](#-additional-resources)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
@@ -20,7 +40,18 @@ This platform addresses the **data overload problem** in modern trading by provi
 - **Interactive dashboard** for visualization and AI chat interface
 - **Comprehensive monitoring** and observability
 
-### Key Features
+### 🌟 What Makes This Special
+
+This isn't just another trading dashboard - it's a **complete financial intelligence platform** built with:
+
+- 🏢 **Production-Grade Architecture**: 15+ microservices orchestrated with Docker Compose
+- 🧠 **Advanced AI Integration**: RAG, GraphRAG, Vision Models, and Offline LLMs
+- 📊 **Real-Time Processing**: Kafka + Spark streaming pipeline handling market data at scale
+- 🔍 **Multi-Database Strategy**: PostgreSQL, MongoDB, Qdrant (Vector), Neo4j (Graph), Redis (Cache)
+- 🤖 **Intelligent Automation**: Reinforcement Learning agent making data-driven trading decisions
+- 📈 **Comprehensive Analytics**: From market data to sentiment analysis to behavioral psychology
+
+### ✨ Key Features
 
 ✅ **Streaming Analytics**: Apache Kafka + Spark for high-throughput real-time processing
 ✅ **AI Co-Pilot**: LangChain-powered conversational analytics with contextual awareness
@@ -30,7 +61,7 @@ This platform addresses the **data overload problem** in modern trading by provi
 ✅ **RL Trading Agent**: Deep Q-Network for intelligent trading recommendations
 ✅ **Multi-Modal Data Fusion**: Combines prices, news sentiment, and social media
 ✅ **Graph RAG**: Knowledge graph queries for relationship-based insights
-✅ **Production-Ready**: Docker Compose orchestration with comprehensive monitoring
+✅ **Production-Ready**: Full observability with Prometheus + Grafana monitoring
 
 ---
 
@@ -61,6 +92,7 @@ This platform addresses the **data overload problem** in modern trading by provi
 ┌─────────────────────────────────────────────────────────────────┐
 │                      STORAGE LAYER                               │
 │  PostgreSQL  │  MongoDB  │  Qdrant (Vector)  │  Neo4j (Graph)  │
+│                      Redis (Cache)                               │
 └────────────┬────────────────────────────────────────────────────┘
              │
              ▼
@@ -95,32 +127,42 @@ This platform addresses the **data overload problem** in modern trading by provi
 
 | Category | Technologies |
 |----------|-------------|
-| **Streaming** | Apache Kafka, Apache Spark Structured Streaming |
-| **Databases** | PostgreSQL, MongoDB, Qdrant (Vector DB), Neo4j (Graph DB) |
+| **Streaming** | Apache Kafka 7.5, Schema Registry, Apache Spark 3.5 |
+| **Databases** | PostgreSQL 15, MongoDB 7, Qdrant (Vector DB), Neo4j 5 (Graph DB) |
+| **Caching** | Redis 7 (Alpine) |
 | **AI/ML** | LangChain, OpenAI GPT-4, Stable-Baselines3 (RL) |
 | **Vision Models** | GPT-4 Vision, LLaVA, BLIP-2 |
 | **Offline LLMs** | LLaMA 2, Mistral (via llama.cpp) |
-| **Backend** | FastAPI, GraphQL (Strawberry) |
-| **Frontend** | Streamlit, Plotly |
-| **Orchestration** | Apache Airflow, Docker Compose |
-| **Monitoring** | Prometheus, Grafana |
-| **MLOps** | MLflow, Weights & Biases |
+| **Backend** | FastAPI 0.104+, GraphQL (Strawberry) |
+| **Frontend** | Streamlit 1.29+, Plotly 5.18+ |
+| **Orchestration** | Apache Airflow 2.7+, Docker Compose v3.8 |
+| **Monitoring** | Prometheus (latest), Grafana (latest) |
+| **MLOps** | MLflow 2.8+ |
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### System Requirements
 
-- Docker & Docker Compose (v2.0+)
-- 16GB+ RAM recommended
-- 20GB+ free disk space
+#### Minimum Configuration
+- **OS**: Linux, macOS, or Windows 10/11 with WSL2
+- **Docker**: Docker Engine 20.10+ and Docker Compose v2.0+
+- **RAM**: 8GB (basic functionality)
+- **Storage**: 15GB free disk space
+- **CPU**: 4 cores recommended
+
+#### Recommended Configuration
+- **RAM**: 16GB+ for optimal performance
+- **Storage**: 20GB+ for production use
+- **CPU**: 8+ cores for parallel processing
+- **Network**: Stable internet connection for API keys (optional)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/Finance-and-Trading.git
+   git clone https://github.com/Srujan29112001/Finance-and-Trading.git
    cd Finance-and-Trading
    ```
 
@@ -141,12 +183,47 @@ This platform addresses the **data overload problem** in modern trading by provi
    ```
 
 5. **Access the services**
-   - **Dashboard**: http://localhost:8501
-   - **API Docs**: http://localhost:8000/docs
+   - **Dashboard**: http://localhost:8501 (Streamlit UI)
+   - **API Docs**: http://localhost:8000/docs (FastAPI Swagger)
+   - **GraphQL Playground**: http://localhost:8000/graphql (Interactive GraphQL)
    - **Grafana**: http://localhost:3000 (admin/admin)
-   - **Kafka UI**: http://localhost:9092
-   - **Airflow**: http://localhost:8082
-   - **MLflow**: http://localhost:5000
+   - **Prometheus**: http://localhost:9090 (Metrics)
+   - **Airflow**: http://localhost:8082 (Workflow Orchestration)
+   - **MLflow**: http://localhost:5000 (ML Experiment Tracking)
+   - **Spark Master**: http://localhost:8080 (Spark UI)
+   - **Neo4j Browser**: http://localhost:7474 (neo4j/financepass)
+   - **Qdrant Dashboard**: http://localhost:6333/dashboard (Vector DB)
+
+### Quick Commands (Using Makefile)
+
+```bash
+# Start all services
+make up
+
+# View logs
+make logs              # All services
+make logs-api          # FastAPI backend only
+make logs-dashboard    # Streamlit frontend only
+
+# Check system health
+make status
+make check-health
+
+# Stop services
+make down
+
+# Restart services
+make restart
+
+# Clean everything (including volumes)
+make clean
+
+# Run tests
+make test
+
+# See all available commands
+make help
+```
 
 ---
 
@@ -510,9 +587,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## 📧 Contact & Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/Finance-and-Trading/issues)
-- **Email**: your.email@example.com
-- **Documentation**: Full docs at [docs/](docs/)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Srujan29112001/Finance-and-Trading/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Srujan29112001/Finance-and-Trading/discussions)
+- **Documentation**: See [Additional Resources](#-additional-resources) section below
 
 ---
 
@@ -534,19 +611,44 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ---
 
+## 📊 Project Stats
+
+| Metric | Value |
+|--------|-------|
+| **Microservices** | 15+ containerized services |
+| **Lines of Code** | 5,700+ (Python, SQL, YAML) |
+| **Database Systems** | 5 (PostgreSQL, MongoDB, Qdrant, Neo4j, Redis) |
+| **API Endpoints** | 30+ REST + GraphQL |
+| **Streaming Topics** | 3 Kafka topics (market_prices, news_events, social_tweets) |
+| **AI/ML Models** | 4 types (LangChain Agent, RL Agent, Vision Models, Sentiment) |
+| **Monitoring Metrics** | Prometheus + Grafana dashboards |
+| **Documentation** | 15+ comprehensive guides |
+
+---
+
 ## 📚 Additional Resources
 
-### Setup Guides
-- [Getting Started Guide](GETTING_STARTED.md) - Complete setup and testing instructions
-- [VLM & Offline Analytics Setup](VLM_AND_OFFLINE_GUIDE.md) - Visual chart analysis and local LLMs
-- [Smart Orchestration Guide](SMART_ORCHESTRATION_GUIDE.md) - Intelligent model selection and fallback
+### 🚀 Setup & Quick Start Guides
+- **[Getting Started Guide](GETTING_STARTED.md)** - Step-by-step setup and testing instructions
+- **[Quick Reference](QUICK_REFERENCE.md)** - Command cheat sheet for daily use
+- **[Beginner's Complete Guide](BEGINNER_COMPLETE_GUIDE.md)** - Comprehensive guide for newcomers
 
-### Technical Documentation
-- [Architecture Deep Dive](docs/ARCHITECTURE.md)
-- [API Reference](http://localhost:8000/docs)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [ML Models Documentation](docs/ML_MODELS.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+### 🤖 AI & Advanced Features
+- **[VLM & Offline Analytics Setup](VLM_AND_OFFLINE_GUIDE.md)** - Visual chart analysis and local LLMs
+- **[Smart Orchestration Guide](SMART_ORCHESTRATION_GUIDE.md)** - Intelligent model selection and fallback
+- **[New Features Guide](NEW_FEATURES_GUIDE.md)** - Latest capabilities and updates
+
+### 🛠️ Operations & Deployment
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[CI/CD Guide](CI_CD_GUIDE.md)** - Continuous integration and deployment setup
+- **[Pipeline Monitoring Guide](PIPELINE_MONITORING_GUIDE.md)** - Observability best practices
+- **[Pull Request Guide](PULL_REQUEST_GUIDE.md)** - Contributing guidelines
+
+### 📊 Project Documentation
+- **[Project Summary](PROJECT_SUMMARY.md)** - High-level project overview
+- **[Project Completion Report](PROJECT_COMPLETION_REPORT.md)** - Implementation details
+- **[Component Status](COMPONENT_STATUS.txt)** - System component health
+- **[API Reference](http://localhost:8000/docs)** - Interactive API documentation (requires running services)
 
 ---
 
