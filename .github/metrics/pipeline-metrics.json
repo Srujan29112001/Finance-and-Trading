@@ -1,23 +1,23 @@
 {
-  "total_runs": 68,
-  "successful_runs": 45,
+  "total_runs": 70,
+  "successful_runs": 47,
   "failed_runs": 21,
   "cancelled_runs": 1,
-  "avg_duration_seconds": 117.61764705882354,
+  "avg_duration_seconds": 115.08571428571429,
   "workflows": {
     "Pipeline Monitoring & Metrics": {
-      "runs": 38,
-      "success": 37,
+      "runs": 39,
+      "success": 38,
       "failure": 0,
-      "avg_duration": 34.13157894736842,
+      "avg_duration": 34.07692307692308,
       "null": 1,
-      "success_rate": 97.36842105263158
+      "success_rate": 97.43589743589743
     },
     "Cost Monitoring & Optimization": {
-      "runs": 5,
-      "success": 5,
+      "runs": 6,
+      "success": 6,
       "failure": 0,
-      "avg_duration": 25.6,
+      "avg_duration": 25.666666666666668,
       "success_rate": 100.0
     },
     "CI - Test, Lint, and Build": {
@@ -37,7 +37,7 @@
     }
   },
   "daily_runs": {
-    "2025-11-22": 1,
+    "2025-11-22": 3,
     "2025-11-21": 5,
     "2025-11-20": 5,
     "2025-11-19": 7,
@@ -45,9 +45,9 @@
     "2025-11-17": 34,
     "2025-11-16": 11
   },
-  "collection_time": "2025-11-22T00:42:45.304776",
+  "collection_time": "2025-11-22T06:13:01.144005",
   "median_duration_seconds": 36.0,
   "p95_duration_seconds": 680.0,
-  "success_rate": 66.17647058823529,
-  "failure_rate": 30.88235294117647
+  "success_rate": 67.14285714285714,
+  "failure_rate": 30.0
 }
