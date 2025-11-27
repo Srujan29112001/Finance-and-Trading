@@ -1,16 +1,16 @@
 # 📊 Pipeline Metrics Report
 
-**Generated:** 2025-11-27 12:18:36 UTC
+**Generated:** 2025-11-27 18:13:44 UTC
 
 ## Overall Statistics (Last 30 Days)
 
 | Metric | Value |
 |--------|-------|
-| Total Runs | 96 |
-| Successful | 73 (76.0%) |
-| Failed | 21 (21.9%) |
+| Total Runs | 97 |
+| Successful | 74 (76.3%) |
+| Failed | 21 (21.6%) |
 | Cancelled | 1 |
-| Avg Duration | 1.6 min |
+| Avg Duration | 1.5 min |
 | Median Duration | 0.6 min |
 | P95 Duration | 11.0 min |
 
@@ -25,13 +25,13 @@
 | Automated Code Review | 7 | 28.6% | 2.6 min |
 | CI - Test, Lint, and Build | 18 | 5.6% | 5.1 min |
 | Cost Monitoring & Optimization | 11 | 100.0% | 0.5 min |
-| Pipeline Monitoring & Metrics | 60 | 98.3% | 0.6 min |
+| Pipeline Monitoring & Metrics | 61 | 98.4% | 0.6 min |
 
 ## Daily Activity (Last 7 Days)
 
 | Date | Runs |
 |------|------|
-| 2025-11-27 | 4 |
+| 2025-11-27 | 5 |
 | 2025-11-26 | 5 |
 | 2025-11-25 | 5 |
 | 2025-11-24 | 5 |
