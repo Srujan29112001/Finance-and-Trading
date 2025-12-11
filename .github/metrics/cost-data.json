@@ -1,24 +1,24 @@
 {
   "period": {
-    "start": "2025-11-10T01:08:53.685184",
-    "end": "2025-12-10T01:08:53.685192",
+    "start": "2025-11-11T01:09:33.393126",
+    "end": "2025-12-11T01:09:33.393134",
     "days": 30
   },
-  "total_minutes": 188.52,
-  "estimated_cost": 1.51,
+  "total_minutes": 192.13,
+  "estimated_cost": 1.54,
   "billable_minutes": 0,
   "actual_cost": 0.0,
-  "free_tier_used": 188.52,
+  "free_tier_used": 192.13,
   "workflows": {
     "Cost Monitoring & Optimization": {
-      "runs": 24,
-      "minutes": 10.883333333333333,
-      "cost": 0.08706666666666668
+      "runs": 25,
+      "minutes": 11.4,
+      "cost": 0.0912
     },
     "Pipeline Monitoring & Metrics": {
-      "runs": 110,
-      "minutes": 68.08333333333334,
-      "cost": 0.5446666666666669
+      "runs": 114,
+      "minutes": 71.18333333333335,
+      "cost": 0.5694666666666668
     },
     "CI - Test, Lint, and Build": {
       "runs": 18,
@@ -32,11 +32,11 @@
     }
   },
   "runners": {
-    "ubuntu": 188.51666666666665,
+    "ubuntu": 192.1333333333333,
     "windows": 0,
     "macos": 0
   },
-  "avg_minutes_per_day": 6.28,
-  "projected_monthly_cost": 1.51,
-  "collection_time": "2025-12-10T01:08:53.685205"
+  "avg_minutes_per_day": 6.4,
+  "projected_monthly_cost": 1.54,
+  "collection_time": "2025-12-11T01:09:33.393148"
 }
