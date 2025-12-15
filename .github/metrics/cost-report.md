@@ -1,32 +1,32 @@
 # 💰 GitHub Actions Cost Report
 
-**Period:** 2025-11-14 to 2025-12-14 (30 days)
-**Generated:** 2025-12-14 01:14:04 UTC
+**Period:** 2025-11-15 to 2025-12-15 (30 days)
+**Generated:** 2025-12-15 01:11:02 UTC
 
 ## Cost Summary
 
 | Metric | Value |
 |--------|-------|
-| Total Minutes Used | 201.5 min |
-| Free Tier Used | 201.5 min |
+| Total Minutes Used | 204.8 min |
+| Free Tier Used | 204.8 min |
 | Billable Minutes | 0.0 min |
-| **Estimated Monthly Cost** | **$1.61** |
-| Avg Minutes/Day | 6.7 min |
+| **Estimated Monthly Cost** | **$1.64** |
+| Avg Minutes/Day | 6.8 min |
 
 ## Cost by Workflow
 
 | Workflow | Runs | Minutes | Est. Cost |
 |----------|------|---------|-----------|
 | CI - Test, Lint, and Build | 18 | 91.5 | $0.73 |
-| Pipeline Monitoring & Metrics | 126 | 79.1 | $0.63 |
+| Pipeline Monitoring & Metrics | 130 | 81.9 | $0.66 |
 | Automated Code Review | 7 | 18.0 | $0.14 |
-| Cost Monitoring & Optimization | 28 | 12.9 | $0.10 |
+| Cost Monitoring & Optimization | 29 | 13.4 | $0.11 |
 
 ## Runner Usage
 
 | Runner Type | Minutes | Percentage |
 |-------------|---------|------------|
-| Ubuntu (Linux) | 201.5 | 100.0% |
+| Ubuntu (Linux) | 204.8 | 100.0% |
 | Windows | 0.0 | 0.0% |
 | macOS | 0.0 | 0.0% |
 
@@ -38,13 +38,13 @@
 
 | Timeframe | Estimated Cost |
 |-----------|----------------|
-| Weekly | $0.40 |
-| Monthly | $1.61 |
-| Yearly | $19.32 |
+| Weekly | $0.41 |
+| Monthly | $1.64 |
+| Yearly | $19.68 |
 
 ## Free Tier Status
 
-🟢 **Well within free tier** - 10.1% used
+🟢 **Well within free tier** - 10.2% used
 
 ---
 *Updated daily at 00:00 UTC*
