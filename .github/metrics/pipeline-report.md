@@ -1,6 +1,6 @@
 # 📊 Pipeline Metrics Report
 
-**Generated:** 2026-01-20 18:19:08 UTC
+**Generated:** 2026-01-21 00:51:32 UTC
 
 ## Overall Statistics (Last 30 Days)
 
@@ -12,7 +12,7 @@
 | Cancelled | 0 |
 | Avg Duration | 0.6 min |
 | Median Duration | 0.6 min |
-| P95 Duration | 0.8 min |
+| P95 Duration | 0.7 min |
 
 ## Success Rate Indicator
 
@@ -29,13 +29,13 @@
 
 | Date | Runs |
 |------|------|
+| 2026-01-21 | 1 |
 | 2026-01-20 | 5 |
 | 2026-01-19 | 5 |
 | 2026-01-18 | 5 |
 | 2026-01-17 | 5 |
 | 2026-01-16 | 5 |
 | 2026-01-15 | 5 |
-| 2026-01-14 | 5 |
 
 ## 📈 Recommendations
 
