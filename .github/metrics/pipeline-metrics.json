@@ -3,13 +3,13 @@
   "successful_runs": 149,
   "failed_runs": 0,
   "cancelled_runs": 0,
-  "avg_duration_seconds": 35.973333333333336,
+  "avg_duration_seconds": 35.99333333333333,
   "workflows": {
     "Pipeline Monitoring & Metrics": {
       "runs": 120,
       "success": 119,
       "failure": 0,
-      "avg_duration": 37.86666666666667,
+      "avg_duration": 37.891666666666666,
       "null": 1,
       "success_rate": 99.16666666666667
     },
@@ -22,7 +22,7 @@
     }
   },
   "daily_runs": {
-    "2026-01-23": 4,
+    "2026-01-23": 5,
     "2026-01-22": 5,
     "2026-01-21": 5,
     "2026-01-20": 5,
@@ -51,10 +51,9 @@
     "2025-12-28": 5,
     "2025-12-27": 5,
     "2025-12-26": 5,
-    "2025-12-25": 5,
-    "2025-12-24": 1
+    "2025-12-25": 5
   },
-  "collection_time": "2026-01-23T12:21:30.358481",
+  "collection_time": "2026-01-23T18:16:45.259758",
   "median_duration_seconds": 37.0,
   "p95_duration_seconds": 43.0,
   "success_rate": 99.33333333333333,
