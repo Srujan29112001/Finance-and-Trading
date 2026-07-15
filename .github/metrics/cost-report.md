@@ -1,7 +1,7 @@
 # 💰 GitHub Actions Cost Report
 
-**Period:** 2026-06-14 to 2026-07-14 (30 days)
-**Generated:** 2026-07-14 01:49:45 UTC
+**Period:** 2026-06-15 to 2026-07-15 (30 days)
+**Generated:** 2026-07-15 01:45:58 UTC
 
 ## Cost Summary
 
@@ -17,8 +17,8 @@
 
 | Workflow | Runs | Minutes | Est. Cost |
 |----------|------|---------|-----------|
-| Pipeline Monitoring & Metrics | 121 | 77.3 | $0.62 |
-| Cost Monitoring & Optimization | 31 | 14.3 | $0.11 |
+| Pipeline Monitoring & Metrics | 121 | 77.4 | $0.62 |
+| Cost Monitoring & Optimization | 31 | 14.2 | $0.11 |
 
 ## Runner Usage
 
