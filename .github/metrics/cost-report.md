@@ -1,7 +1,7 @@
 # 💰 GitHub Actions Cost Report
 
-**Period:** 2026-06-29 to 2026-07-29 (30 days)
-**Generated:** 2026-07-29 01:55:39 UTC
+**Period:** 2026-06-30 to 2026-07-30 (30 days)
+**Generated:** 2026-07-30 01:47:43 UTC
 
 ## Cost Summary
 
