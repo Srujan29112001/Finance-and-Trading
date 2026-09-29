@@ -1,18 +1,18 @@
 # 📊 Pipeline Metrics Report
 
-**Generated:** 2026-09-29 17:06:41 UTC
+**Generated:** 2026-09-29 21:34:09 UTC
 
 ## Overall Statistics (Last 30 Days)
 
 | Metric | Value |
 |--------|-------|
-| Total Runs | 31 |
-| Successful | 31 (100.0%) |
+| Total Runs | 148 |
+| Successful | 147 (99.3%) |
 | Failed | 0 (0.0%) |
 | Cancelled | 0 |
 | Avg Duration | 0.6 min |
 | Median Duration | 0.6 min |
-| P95 Duration | 1.1 min |
+| P95 Duration | 0.8 min |
 
 ## Success Rate Indicator
 
@@ -22,20 +22,20 @@
 
 | Workflow | Runs | Success Rate | Avg Duration |
 |----------|------|--------------|-------------|
-| Cost Monitoring & Optimization | 6 | 100.0% | 0.5 min |
-| Pipeline Monitoring & Metrics | 25 | 100.0% | 0.7 min |
+| Cost Monitoring & Optimization | 30 | 100.0% | 0.5 min |
+| Pipeline Monitoring & Metrics | 118 | 99.2% | 0.7 min |
 
 ## Daily Activity (Last 7 Days)
 
 | Date | Runs |
 |------|------|
-| 2026-09-20 | 5 |
-| 2026-09-19 | 3 |
-| 2026-09-18 | 3 |
-| 2026-09-17 | 3 |
-| 2026-09-16 | 1 |
-| 2026-09-13 | 1 |
-| 2026-09-11 | 1 |
+| 2026-09-29 | 5 |
+| 2026-09-28 | 4 |
+| 2026-09-27 | 5 |
+| 2026-09-26 | 5 |
+| 2026-09-25 | 5 |
+| 2026-09-24 | 5 |
+| 2026-09-23 | 5 |
 
 ## 📈 Recommendations
 
