@@ -1,32 +1,32 @@
 {
   "period": {
-    "start": "2026-09-30T03:50:43.734600",
-    "end": "2026-10-30T03:50:43.734613",
+    "start": "2026-10-01T03:34:10.784428",
+    "end": "2026-10-31T03:34:10.784440",
     "days": 30
   },
-  "total_minutes": 86.98,
+  "total_minutes": 87.03,
   "estimated_cost": 0.7,
   "billable_minutes": 0,
   "actual_cost": 0.0,
-  "free_tier_used": 86.98,
+  "free_tier_used": 87.03,
   "workflows": {
     "Cost Monitoring & Optimization": {
       "runs": 30,
-      "minutes": 13.266666666666666,
-      "cost": 0.10613333333333337
+      "minutes": 13.25,
+      "cost": 0.10600000000000004
     },
     "Pipeline Monitoring & Metrics": {
       "runs": 113,
-      "minutes": 73.71666666666668,
-      "cost": 0.5897333333333333
+      "minutes": 73.78333333333333,
+      "cost": 0.5902666666666668
     }
   },
   "runners": {
-    "ubuntu": 86.98333333333336,
+    "ubuntu": 87.03333333333337,
     "windows": 0,
     "macos": 0
   },
   "avg_minutes_per_day": 2.9,
   "projected_monthly_cost": 0.7,
-  "collection_time": "2026-10-30T03:50:43.734627"
+  "collection_time": "2026-10-31T03:34:10.784455"
 }
