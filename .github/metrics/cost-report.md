@@ -1,14 +1,14 @@
 # 💰 GitHub Actions Cost Report
 
-**Period:** 2026-10-06 to 2026-11-05 (30 days)
-**Generated:** 2026-11-05 04:34:09 UTC
+**Period:** 2026-10-07 to 2026-11-06 (30 days)
+**Generated:** 2026-11-06 04:32:35 UTC
 
 ## Cost Summary
 
 | Metric | Value |
 |--------|-------|
-| Total Minutes Used | 84.1 min |
-| Free Tier Used | 84.1 min |
+| Total Minutes Used | 83.3 min |
+| Free Tier Used | 83.3 min |
 | Billable Minutes | 0.0 min |
 | **Estimated Monthly Cost** | **$0.67** |
 | Avg Minutes/Day | 2.8 min |
@@ -17,14 +17,14 @@
 
 | Workflow | Runs | Minutes | Est. Cost |
 |----------|------|---------|-----------|
-| Pipeline Monitoring & Metrics | 109 | 70.6 | $0.56 |
-| Cost Monitoring & Optimization | 30 | 13.5 | $0.11 |
+| Pipeline Monitoring & Metrics | 109 | 69.8 | $0.56 |
+| Cost Monitoring & Optimization | 30 | 13.4 | $0.11 |
 
 ## Runner Usage
 
 | Runner Type | Minutes | Percentage |
 |-------------|---------|------------|
-| Ubuntu (Linux) | 84.1 | 100.0% |
+| Ubuntu (Linux) | 83.3 | 100.0% |
 | Windows | 0.0 | 0.0% |
 | macOS | 0.0 | 0.0% |
 
