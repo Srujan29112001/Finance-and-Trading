@@ -1,7 +1,7 @@
 {
   "period": {
-    "start": "2026-10-12T04:00:54.841578",
-    "end": "2026-11-11T04:00:54.841590",
+    "start": "2026-10-13T05:12:15.220503",
+    "end": "2026-11-12T05:12:15.220514",
     "days": 30
   },
   "total_minutes": 81.87,
@@ -12,13 +12,13 @@
   "workflows": {
     "Cost Monitoring & Optimization": {
       "runs": 30,
-      "minutes": 13.350000000000003,
-      "cost": 0.10680000000000002
+      "minutes": 13.483333333333336,
+      "cost": 0.10786666666666668
     },
     "Pipeline Monitoring & Metrics": {
       "runs": 107,
-      "minutes": 68.51666666666667,
-      "cost": 0.5481333333333336
+      "minutes": 68.38333333333333,
+      "cost": 0.5470666666666668
     }
   },
   "runners": {
@@ -28,5 +28,5 @@
   },
   "avg_minutes_per_day": 2.73,
   "projected_monthly_cost": 0.65,
-  "collection_time": "2026-11-11T04:00:54.841604"
+  "collection_time": "2026-11-12T05:12:15.220529"
 }
